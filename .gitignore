@@ -216,3 +216,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===== Project-specific =====
+
+# Data files (large CSVs, pickles)
+data/*.csv
+data/*.pkl
+data/*.parquet
+simulated-data-raw/
+
+# Model artifacts
+models/
+mlruns/
+mlartifacts/
+
+# Experiment outputs
+outputs/
+results/
+logs/
+
+# Virtual environment
+.drift/
+
+# OS files
+.DS_Store
+Thumbs.db
