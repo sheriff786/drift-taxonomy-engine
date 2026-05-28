@@ -1,0 +1,138 @@
+{
+  "No Drift (Clean)": {
+    "drift_type": "covariate",
+    "severity": "none",
+    "action": "monitor",
+    "confidence": 0.95,
+    "n_signals": 6,
+    "top_signals": [
+      {
+        "feature": "V3",
+        "type": "distribution_shift",
+        "magnitude": 0.6323564544650813
+      },
+      {
+        "feature": "V11",
+        "type": "distribution_shift",
+        "magnitude": 0.3924772214590149
+      },
+      {
+        "feature": "V25",
+        "type": "distribution_shift",
+        "magnitude": 0.36084756925635547
+      },
+      {
+        "feature": "V15",
+        "type": "distribution_shift",
+        "magnitude": 0.28129323500581316
+      },
+      {
+        "feature": "V12",
+        "type": "distribution_shift",
+        "magnitude": 0.25098800652323916
+      }
+    ]
+  },
+  "Covariate Drift": {
+    "drift_type": "mixed",
+    "severity": "medium",
+    "action": "investigate",
+    "confidence": 0.7,
+    "n_signals": 15,
+    "top_signals": [
+      {
+        "feature": "V1",
+        "type": "distribution_shift",
+        "magnitude": 0.9319842239503272
+      },
+      {
+        "feature": "V5",
+        "type": "distribution_shift",
+        "magnitude": 0.7401749167514388
+      },
+      {
+        "feature": "V4",
+        "type": "distribution_shift",
+        "magnitude": 0.5077452932415191
+      },
+      {
+        "feature": "V2",
+        "type": "distribution_shift",
+        "magnitude": 0.4464044961250119
+      },
+      {
+        "feature": "V11",
+        "type": "distribution_shift",
+        "magnitude": 0.3924772214590149
+      }
+    ]
+  },
+  "Concept Drift": {
+    "drift_type": "concept",
+    "severity": "critical",
+    "action": "retrain",
+    "confidence": 0.95,
+    "n_signals": 9,
+    "top_signals": [
+      {
+        "feature": "model_recall",
+        "type": "performance_decay",
+        "magnitude": 1.0
+      },
+      {
+        "feature": "model_precision",
+        "type": "performance_decay",
+        "magnitude": 1.0
+      },
+      {
+        "feature": "model_f1",
+        "type": "performance_decay",
+        "magnitude": 1.0
+      },
+      {
+        "feature": "V3",
+        "type": "distribution_shift",
+        "magnitude": 0.6323564544650813
+      },
+      {
+        "feature": "V11",
+        "type": "distribution_shift",
+        "magnitude": 0.3924772214590149
+      }
+    ]
+  },
+  "Pipeline Drift": {
+    "drift_type": "concept",
+    "severity": "critical",
+    "action": "retrain",
+    "confidence": 0.5263157894736842,
+    "n_signals": 10,
+    "top_signals": [
+      {
+        "feature": "V17",
+        "type": "constant_value",
+        "magnitude": 0.9
+      },
+      {
+        "feature": "V3",
+        "type": "distribution_shift",
+        "magnitude": 0.6323564544650813
+      },
+      {
+        "feature": "model_recall",
+        "type": "performance_decay",
+        "magnitude": 0.5263157894736842
+      },
+      {
+        "feature": "model_f1",
+        "type": "performance_decay",
+        "magnitude": 0.48913043478260876
+      },
+      {
+        "feature": "model_precision",
+        "type": "performance_decay",
+        "magnitude": 0.4444444444444445
+      }
+    ]
+  }
+}

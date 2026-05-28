@@ -1,0 +1,5 @@
+Drift Type,Dataset Drift Detected,Drifted Features (%),Drifted Columns,Total Columns
+No Drift (Baseline),True,61.29032258064516,19,31
+Covariate Drift,True,67.74193548387096,21,31
+Concept Drift,True,61.29032258064516,19,31
+Pipeline Drift,True,64.51612903225806,20,31

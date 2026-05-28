@@ -1,0 +1,36 @@
+{
+  "drift_types_simulated": [
+    "covariate",
+    "concept",
+    "pipeline"
+  ],
+  "reference_data_size": 227845,
+  "current_data_size": 56962,
+  "results": {
+    "covariate": {
+      "drift_detected": true,
+      "pct_features_drifted": 0.6774193548387096,
+      "n_drifted_columns": 21,
+      "simulation": "Amount*3, Time+100K, V1+1.5, V2-0.8, V3+1.2, V4-0.5, V5+0.7, V14*2"
+    },
+    "concept": {
+      "drift_detected": true,
+      "pct_features_drifted": 0.6129032258064516,
+      "n_drifted_columns": 19,
+      "simulation": "Fraud labels reassigned to different feature ranges (V1>1.5, V14>0.5)"
+    },
+    "pipeline": {
+      "drift_detected": true,
+      "pct_features_drifted": 0.6451612903225806,
+      "n_drifted_columns": 20,
+      "simulation": "V14=20%NaN, V12=zeros, Amount=negatives, V10=outliers, V17=zeroed"
+    }
+  },
+  "key_findings": [
+    "Covariate drift is detectable via standard statistical tests",
+    "Concept drift is HARDEST to detect - requires target/performance monitoring",
+    "Pipeline drift produces strongest signals - easiest to detect and prevent",
+    "Per-feature monitoring is more sensitive than dataset-level drift detection",
+    "Gradual drift requires lower thresholds or cumulative detection methods"
+  ]
+}

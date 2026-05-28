@@ -1,0 +1,38 @@
+{
+  "engine_version": "1.0.0",
+  "significance_level": 0.001,
+  "n_features_monitored": 29,
+  "reference_data_size": 227845,
+  "target_column": "Class",
+  "baseline_performance": {
+    "recall": 0.95,
+    "precision": 0.9,
+    "f1": 0.92
+  },
+  "feature_importances_top10": {
+    "V14": 0.19955816123807904,
+    "V10": 0.12662517662290926,
+    "V4": 0.10885095641154532,
+    "V12": 0.08020097319567031,
+    "V17": 0.07668786124828465,
+    "V11": 0.07632716445110804,
+    "V3": 0.04813558128180683,
+    "V16": 0.03502202923222553,
+    "V7": 0.03290637001801987,
+    "V2": 0.0268814596173393
+  },
+  "action_matrix": {
+    "covariate_low": "monitor",
+    "covariate_medium": "alert",
+    "covariate_high": "investigate",
+    "covariate_critical": "retrain",
+    "concept_low": "alert",
+    "concept_medium": "investigate",
+    "concept_high": "retrain",
+    "concept_critical": "retrain",
+    "pipeline_low": "alert",
+    "pipeline_medium": "investigate",
+    "pipeline_high": "block",
+    "pipeline_critical": "block"
+  }
+}

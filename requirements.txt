@@ -11,6 +11,12 @@ scipy==1.13.1
 # =========================
 xgboost==2.1.1
 lightgbm==4.5.0
+imbalanced-learn==0.12.4
+
+# =========================
+# Data Storage / Serialization
+# =========================
+pyarrow==17.0.0
 
 # =========================
 # Visualization & EDA
