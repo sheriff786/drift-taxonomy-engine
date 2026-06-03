@@ -77,3 +77,44 @@ async def predict(request: PredictionRequest):
         raise HTTPException(status_code=503, detail=f"Model not available: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@router.post("/explain")
+async def explain_prediction(request: PredictionRequest):
+    """
+    Get SHAP-based explanations for predictions.
+
+    Returns per-prediction feature contributions explaining WHY the model
+    flagged a transaction as fraud or legitimate.
+    """
+    try:
+        from src.explainability.shap_explainer import SHAPExplainer
+
+        model_name = request.model_name
+
+        # Validate model
+        if model_name:
+            registry = ModelRegistry()
+            available = registry.list_models()
+            if model_name not in available:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Model '{model_name}' not found. Available: {available}"
+                )
+
+        # Convert to model input format
+        df = pd.DataFrame([sample.to_model_input() for sample in request.samples])
+
+        # Generate explanations
+        explainer = SHAPExplainer(model_name=model_name)
+        explanations = explainer.explain(df, top_n=10)
+
+        return {
+            "explanations": explanations,
+            "n_samples": len(explanations),
+            "model_name": model_name or "default (best)",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Explanation failed: {str(e)}")
