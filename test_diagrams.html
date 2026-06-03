@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mermaid Diagram Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1e1e1e; color: #fff; }
+        h2 { border-bottom: 1px solid #444; padding-bottom: 8px; }
+        .mermaid { background: #fff; padding: 20px; border-radius: 8px; margin: 10px 0 30px 0; }
+    </style>
+</head>
+<body>
+    <h2>1. Our Solution (graph LR)</h2>
+    <div class="mermaid">
+graph LR
+    A[Production Data] --> B[Drift Engine]
+    B --> C[Covariate Detector]
+    B --> D[Concept Detector]
+    B --> E[Pipeline Detector]
+    B --> F[Target Detector]
+    C --> G[Classifier]
+    D --> G
+    E --> G
+    F --> G
+    G --> H[Severity Scorer]
+    H --> I[Action Recommender]
+    I --> J[Playbook Generator]
+    J --> K[Monitor]
+    J --> L[Alert Team]
+    J --> M[Auto-Retrain]
+    J --> N[Block Serving]
+    </div>
+
+    <h2>2. System Architecture (graph TB)</h2>
+    <div class="mermaid">
+graph TB
+    A[Credit Card Dataset] --> B[Data Ingestion]
+    B --> C[Preprocessing]
+    C --> D[Data Validation]
+    D --> E[Model Training]
+    E --> F[MLflow Tracking]
+    E --> G[Model Registry]
+    G --> H[FastAPI Server port 8000]
+    H --> I[predict]
+    H --> J[drift diagnose]
+    H --> K[explain]
+    L[Reference Data] --> M[Drift Taxonomy Engine]
+    N[Production Data] --> M
+    M --> O[Covariate Detector]
+    M --> P[Concept Detector]
+    M --> Q[Pipeline Detector]
+    M --> R[Target Detector]
+    O --> S[Drift Classifier]
+    P --> S
+    Q --> S
+    R --> S
+    S --> T[Severity + Action + Playbook]
+    T -->|Critical| V[Auto-Retrain Pipeline]
+    T -->|High| W[Alert + Investigate]
+    T -->|Low| Y[Continue Monitoring]
+    V --> E
+    Z[Streamlit Dashboard port 8501] --> H
+    Z --> F
+    Z --> T
+    </div>
+
+    <h2>3. Component Interaction (sequenceDiagram)</h2>
+    <div class="mermaid">
+sequenceDiagram
+    participant P as Production Data
+    participant API as FastAPI Server
+    participant DE as Drift Engine
+    participant CD as Covariate Detector
+    participant AR as Auto-Retrain
+    participant DB as Dashboard
+
+    P->>API: POST drift diagnose
+    API->>DE: diagnose_quick(reference, current)
+    DE->>CD: detect(reference, current)
+    CD-->>DE: CovariateSignals
+    DE->>DE: classify + score + recommend
+    DE-->>API: DriftDiagnosis
+    API-->>DB: Display Results
+    API->>AR: trigger_retrain if Critical
+    AR-->>API: New model registered
+    </div>
+
+    <h2>4. End-to-End Pipeline Flow (graph TD)</h2>
+    <div class="mermaid">
+graph TD
+    A[creditcard.csv - 284K rows] --> B[Load and Validate]
+    B --> C{Schema Valid?}
+    C -->|Yes| D[Preprocess]
+    C -->|No| E[Reject + Alert]
+    D --> F[Scale Amount + Time]
+    D --> H[V1-V28 mapped to Domain Names]
+    F --> I[30 Features Ready]
+    H --> I
+    I --> J[Train/Test Split 80/20]
+    J --> K[Train 4 Models]
+    K --> L[Random Forest - Best]
+    K --> M[XGBoost]
+    K --> N[LightGBM]
+    K --> O[Logistic Regression]
+    L --> P[MLflow Log Metrics]
+    M --> P
+    N --> P
+    O --> P
+    P --> Q[Register Best to Production]
+    R[Reference Data] --> S[Compare Distributions]
+    T[New Production Batch] --> S
+    S --> U[KS Test + Cohens d]
+    U --> V{Drift Detected?}
+    V -->|Yes| W[Classify + Score + Act]
+    V -->|No| X[System Healthy]
+    W --> Y[Block / Retrain / Alert / Monitor]
+    Y -->|Retrain| K
+    </div>
+
+    <h2>5. Single Transaction Flow (sequenceDiagram)</h2>
+    <div class="mermaid">
+sequenceDiagram
+    participant Client
+    participant API as FastAPI
+    participant Model as Fraud Model
+    participant SHAP as SHAP Explainer
+    participant Drift as Drift Engine
+
+    Client->>API: POST predict
+    API->>Model: predict_proba(features)
+    Model-->>API: probability = 0.94
+    API->>SHAP: explain(features)
+    SHAP-->>API: top features + SHAP values
+    API-->>Client: prediction=FRAUD, prob=0.94, explanation
+    API->>Drift: buffer for batch drift check
+    Drift-->>API: drift_type=none, severity=none
+    </div>
+
+    <h2>6. Classification Hierarchy (graph LR)</h2>
+    <div class="mermaid">
+graph LR
+    ROOT[Drift Taxonomy] --> COV[Covariate Drift]
+    ROOT --> CON[Concept Drift]
+    ROOT --> PIP[Pipeline Drift]
+    ROOT --> TAR[Target Drift]
+
+    COV --> COV1[Numerical Shift]
+    COV --> COV2[Variance Change]
+    COV --> COV3[Distributional]
+    COV1 --> F1[cardholder_verification]
+    COV1 --> F2[behavioral_consistency]
+    COV1 --> F3[high_risk_merchant_flag]
+    COV2 --> F4[spending_pattern_match]
+    COV2 --> F5[location_consistency]
+    COV3 --> F6[velocity_anomaly]
+
+    CON --> CON1[Performance Decay]
+    CON --> CON2[Decision Boundary]
+    CON1 --> C1[AUPRC drop]
+    CON2 --> C2[New fraud patterns]
+
+    PIP --> PIP1[Missing Values]
+    PIP --> PIP2[Data Quality]
+    PIP1 --> P1[Null injection]
+    PIP2 --> P2[Outlier explosion]
+    PIP2 --> P3[Range violations]
+
+    TAR --> TAR1[Label Distribution]
+    TAR1 --> T1[Fraud rate change]
+    TAR1 --> T2[Seasonal patterns]
+    </div>
+
+    <h2>7. Auto-Retrain (graph LR)</h2>
+    <div class="mermaid">
+graph LR
+    A[Drift Detected] --> B[Trigger Retrain]
+    B --> C[Load Fresh Data]
+    C --> D[Train All Models]
+    D --> E[Compare vs Champion]
+    E --> F{New Model Better?}
+    F -->|Yes| G[Register + Promote]
+    F -->|No| H[Keep Current + Alert]
+    G --> I[Update Reference Data]
+    I --> J[Re-run Drift Check]
+    J --> K[System Stabilized]
+    </div>
+</body>
+</html>

@@ -75,21 +75,23 @@ A credit card fraud detection model is deployed in production. Over time:
 ### Our Solution
 
 ```mermaid
-flowchart LR
-    A[Production Data] --> B{Drift Engine}
+graph LR
+    A[Production Data] --> B[Drift Engine]
     B --> C[Covariate Detector]
     B --> D[Concept Detector]
     B --> E[Pipeline Detector]
     B --> F[Target Detector]
-    C & D & E & F --> G[Classifier]
+    C --> G[Classifier]
+    D --> G
+    E --> G
+    F --> G
     G --> H[Severity Scorer]
     H --> I[Action Recommender]
     I --> J[Playbook Generator]
-    J --> K{Action}
-    K -->|Monitor| L[Continue]
-    K -->|Alert| M[Notify Team]
-    K -->|Retrain| N[Auto-Retrain Pipeline]
-    K -->|Block| O[Halt Serving]
+    J --> K[Monitor]
+    J --> L[Alert Team]
+    J --> M[Auto-Retrain]
+    J --> N[Block Serving]
 ```
 
 ---
@@ -100,50 +102,34 @@ flowchart LR
 
 ```mermaid
 graph TB
-    subgraph "Data Layer"
-        A[Credit Card Dataset<br>284,807 transactions] --> B[Data Ingestion]
-        B --> C[Preprocessing<br>Scaling + Feature Engineering]
-        C --> D[Data Validation]
-    end
-
-    subgraph "Model Layer"
-        D --> E[Model Training<br>RF / XGBoost / LightGBM / LR]
-        E --> F[MLflow Tracking<br>Experiments + Artifacts]
-        E --> G[Model Registry<br>Versioned Models]
-    end
-
-    subgraph "Serving Layer"
-        G --> H[FastAPI Server<br>:8000]
-        H --> I[/predict Endpoint]
-        H --> J[/drift/diagnose Endpoint]
-        H --> K[/explain Endpoint]
-    end
-
-    subgraph "Monitoring Layer"
-        L[Reference Data<br>Parquet] --> M[Drift Taxonomy Engine]
-        N[Production Data] --> M
-        M --> O[Covariate Detector<br>KS + Cohen's d]
-        M --> P[Concept Detector<br>Performance Decay]
-        M --> Q[Pipeline Detector<br>Data Quality]
-        M --> R[Target Detector<br>Label Shift]
-        O & P & Q & R --> S[Drift Classifier]
-        S --> T[Severity → Action → Playbook]
-    end
-
-    subgraph "Response Layer"
-        T --> U{Severity?}
-        U -->|Critical| V[Auto-Retrain Pipeline]
-        U -->|High| W[Alert + Investigate]
-        U -->|Medium| X[Monitor + Alert]
-        U -->|Low| Y[Continue Monitoring]
-        V --> E
-    end
-
-    subgraph "Dashboard Layer"
-        Z[Streamlit Dashboard<br>:8501] --> H
-        Z --> F
-        Z --> T
-    end
+    A[Credit Card Dataset] --> B[Data Ingestion]
+    B --> C[Preprocessing]
+    C --> D[Data Validation]
+    D --> E[Model Training]
+    E --> F[MLflow Tracking]
+    E --> G[Model Registry]
+    G --> H[FastAPI Server port 8000]
+    H --> I[predict]
+    H --> J[drift diagnose]
+    H --> K[explain]
+    L[Reference Data] --> M[Drift Taxonomy Engine]
+    N[Production Data] --> M
+    M --> O[Covariate Detector]
+    M --> P[Concept Detector]
+    M --> Q[Pipeline Detector]
+    M --> R[Target Detector]
+    O --> S[Drift Classifier]
+    P --> S
+    Q --> S
+    R --> S
+    S --> T[Severity + Action + Playbook]
+    T -->|Critical| V[Auto-Retrain Pipeline]
+    T -->|High| W[Alert + Investigate]
+    T -->|Low| Y[Continue Monitoring]
+    V --> E
+    Z[Streamlit Dashboard port 8501] --> H
+    Z --> F
+    Z --> T
 ```
 
 ### Component Interaction
@@ -154,24 +140,18 @@ sequenceDiagram
     participant API as FastAPI Server
     participant DE as Drift Engine
     participant CD as Covariate Detector
-    participant ML as MLflow
     participant AR as Auto-Retrain
     participant DB as Dashboard
 
-    P->>API: POST /drift/diagnose
+    P->>API: POST drift diagnose
     API->>DE: diagnose_quick(reference, current)
     DE->>CD: detect(reference, current)
-    CD-->>DE: CovariateSignals (KS, Cohen's d)
-    DE->>DE: classify → score → recommend
+    CD-->>DE: CovariateSignals
+    DE->>DE: classify + score + recommend
     DE-->>API: DriftDiagnosis
     API-->>DB: Display Results
-    
-    alt Severity = Critical
-        API->>AR: trigger_retrain()
-        AR->>ML: Log new experiment
-        AR->>AR: Train + Validate
-        AR-->>API: New model registered
-    end
+    API->>AR: trigger_retrain() if Critical
+    AR-->>API: New model registered
 ```
 
 ---
@@ -181,49 +161,34 @@ sequenceDiagram
 ### End-to-End Pipeline Flow
 
 ```mermaid
-flowchart TD
-    subgraph "1. Data Ingestion"
-        A[creditcard.csv<br>284,807 rows × 31 cols] --> B[Load & Validate]
-        B --> C{Schema Valid?}
-        C -->|Yes| D[Preprocess]
-        C -->|No| E[❌ Reject + Alert]
-    end
-
-    subgraph "2. Feature Engineering"
-        D --> F[Scale Amount → transaction_amount]
-        D --> G[Scale Time → transaction_time]
-        D --> H[V1-V28 → Domain Names<br>e.g. V14 → cardholder_verification]
-        F & G & H --> I[30 Features Ready]
-    end
-
-    subgraph "3. Model Training"
-        I --> J[Train/Test Split<br>80/20 Stratified]
-        J --> K[Train 4 Models]
-        K --> L[Random Forest ★]
-        K --> M[XGBoost]
-        K --> N[LightGBM]
-        K --> O[Logistic Regression]
-        L & M & N & O --> P[MLflow: Log Metrics]
-        P --> Q[Register Best → Production]
-    end
-
-    subgraph "4. Drift Monitoring"
-        R[Reference Data<br>Training Distribution] --> S[Compare]
-        T[New Production Batch] --> S
-        S --> U[Statistical Tests<br>KS + Cohen's d + PSI]
-        U --> V{Drift Detected?}
-        V -->|Yes| W[Classify + Score + Act]
-        V -->|No| X[✅ Healthy]
-    end
-
-    subgraph "5. Auto-Response"
-        W --> Y{Action Type}
-        Y -->|Block| Z[🛑 Halt Serving]
-        Y -->|Retrain| AA[🔄 Auto-Retrain]
-        Y -->|Alert| BB[📢 Notify Team]
-        Y -->|Monitor| CC[👁️ Watch]
-        AA --> K
-    end
+graph TD
+    A[creditcard.csv - 284K rows] --> B[Load and Validate]
+    B --> C{Schema Valid?}
+    C -->|Yes| D[Preprocess]
+    C -->|No| E[Reject + Alert]
+    D --> F[Scale Amount + Time]
+    D --> H[V1-V28 mapped to Domain Names]
+    F --> I[30 Features Ready]
+    H --> I
+    I --> J[Train/Test Split 80/20]
+    J --> K[Train 4 Models]
+    K --> L[Random Forest - Best]
+    K --> M[XGBoost]
+    K --> N[LightGBM]
+    K --> O[Logistic Regression]
+    L --> P[MLflow Log Metrics]
+    M --> P
+    N --> P
+    O --> P
+    P --> Q[Register Best to Production]
+    R[Reference Data] --> S[Compare Distributions]
+    T[New Production Batch] --> S
+    S --> U[KS Test + Cohens d]
+    U --> V{Drift Detected?}
+    V -->|Yes| W[Classify + Score + Act]
+    V -->|No| X[System Healthy]
+    W --> Y[Block / Retrain / Alert / Monitor]
+    Y -->|Retrain| K
 ```
 
 ### Example: Single Transaction Flow
@@ -231,25 +196,19 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant Client
-    participant API as FastAPI :8000
+    participant API as FastAPI
     participant Model as Fraud Model
     participant SHAP as SHAP Explainer
     participant Drift as Drift Engine
 
-    Client->>API: POST /api/v1/predict
-    Note over Client,API: {"samples": [{"cardholder_verification": -2.5,<br>"behavioral_consistency": 1.3, ...}],<br>"model_name": "random_forest"}
-    
+    Client->>API: POST predict
     API->>Model: predict_proba(features)
     Model-->>API: probability = 0.94
-    
     API->>SHAP: explain(features)
-    SHAP-->>API: top_contributors: [cardholder_verification: -0.35,<br>behavioral_consistency: +0.22]
-    
-    API-->>Client: {"prediction": 1, "probability": 0.94,<br>"explanation": {...}, "model_name": "random_forest"}
-    
-    Note over API,Drift: Async: buffer predictions for drift check
-    API->>Drift: check_batch(recent_1000_txns)
-    Drift-->>API: drift_type: "none", severity: "none"
+    SHAP-->>API: top features + SHAP values
+    API-->>Client: prediction=FRAUD, prob=0.94, explanation
+    API->>Drift: buffer for batch drift check
+    Drift-->>API: drift_type=none, severity=none
 ```
 
 ---
@@ -259,38 +218,36 @@ sequenceDiagram
 ### Classification Hierarchy
 
 ```mermaid
-mindmap
-  root((Drift Taxonomy))
-    Covariate Drift
-      Numerical Shift
-        cardholder_verification
-        behavioral_consistency
-        high_risk_merchant_flag
-      Variance Change
-        spending_pattern_match
-        location_consistency
-      Distributional
-        velocity_anomaly
-        address_verification_score
-    Concept Drift
-      Performance Decay
-        AUPRC drop
-        F1 score drop
-      Decision Boundary
-        New fraud patterns
-        Adversarial adaptation
-    Pipeline Drift
-      Missing Values
-        Null injection
-        Schema violation
-      Data Quality
-        Outlier explosion
-        Range violations
-        Sign flips
-    Target Drift
-      Label Distribution
-        Fraud rate change
-        Seasonal patterns
+graph LR
+    ROOT[Drift Taxonomy] --> COV[Covariate Drift]
+    ROOT --> CON[Concept Drift]
+    ROOT --> PIP[Pipeline Drift]
+    ROOT --> TAR[Target Drift]
+
+    COV --> COV1[Numerical Shift]
+    COV --> COV2[Variance Change]
+    COV --> COV3[Distributional]
+    COV1 --> F1[cardholder_verification]
+    COV1 --> F2[behavioral_consistency]
+    COV1 --> F3[high_risk_merchant_flag]
+    COV2 --> F4[spending_pattern_match]
+    COV2 --> F5[location_consistency]
+    COV3 --> F6[velocity_anomaly]
+
+    CON --> CON1[Performance Decay]
+    CON --> CON2[Decision Boundary]
+    CON1 --> C1[AUPRC drop]
+    CON2 --> C2[New fraud patterns]
+
+    PIP --> PIP1[Missing Values]
+    PIP --> PIP2[Data Quality]
+    PIP1 --> P1[Null injection]
+    PIP2 --> P2[Outlier explosion]
+    PIP2 --> P3[Range violations]
+
+    TAR --> TAR1[Label Distribution]
+    TAR1 --> T1[Fraud rate change]
+    TAR1 --> T2[Seasonal patterns]
 ```
 
 ### Detection Methods
@@ -538,23 +495,24 @@ The Streamlit dashboard provides real-time visibility into:
 When drift severity exceeds the threshold, the system automatically:
 
 ```mermaid
-flowchart LR
-    A[Drift Detected<br>Severity ≥ High] --> B[Trigger Retrain]
-    B --> C[Load Fresh Data<br>Last 7 days]
-    C --> D[Train All Models<br>RF + XGB + LGBM + LR]
-    D --> E[Compare vs Champion<br>AUPRC/F1]
+graph LR
+    A[Drift Detected] --> B[Trigger Retrain]
+    B --> C[Load Fresh Data]
+    C --> D[Train All Models]
+    D --> E[Compare vs Champion]
     E --> F{New Model Better?}
     F -->|Yes| G[Register + Promote]
     F -->|No| H[Keep Current + Alert]
     G --> I[Update Reference Data]
     I --> J[Re-run Drift Check]
-    J --> K[✅ System Stabilized]
+    J --> K[System Stabilized]
 ```
 
 **Trigger Conditions:**
 - Covariate drift score > 0.5 (critical)
 - Concept drift > 0.2 (performance decay >20%)
 - Manual trigger via API: `POST /api/v1/retrain`
+
 
 ---
 
