@@ -49,7 +49,26 @@ async def diagnose_drift(request: DriftDiagnoseRequest):
 @router.get("/drift/status", response_model=DriftStatusResponse)
 async def drift_status():
     """Get latest drift monitoring status."""
-    # This would typically read from a monitoring store
+    import json
+    from pathlib import Path
+    from src.config.settings import get_settings
+
+    settings = get_settings()
+    reports_dir = settings.reports_dir
+
+    if reports_dir.exists():
+        reports = sorted(reports_dir.glob("drift_report_*.json"), reverse=True)
+        if reports:
+            with open(reports[0]) as f:
+                report = json.load(f)
+            return DriftStatusResponse(
+                last_check=report.get("diagnosed_at"),
+                current_drift_type=report.get("drift_type", "none"),
+                current_severity=report.get("severity", "none"),
+                checks_run_24h=len(reports),
+                alerts_triggered=1 if report.get("severity") in ["high", "critical"] else 0,
+            )
+
     return DriftStatusResponse(
         last_check=None,
         current_drift_type="none",
@@ -57,3 +76,21 @@ async def drift_status():
         checks_run_24h=0,
         alerts_triggered=0,
     )
+
+
+@router.post("/retrain")
+async def trigger_retrain(force: bool = False):
+    """
+    Trigger auto-retrain pipeline.
+
+    Args:
+        force: If True, retrain even if drift thresholds are not met.
+    """
+    try:
+        from pipelines.auto_retrain_pipeline import AutoRetrainPipeline
+
+        pipeline = AutoRetrainPipeline()
+        result = pipeline.run(force=force)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Retrain failed: {str(e)}")

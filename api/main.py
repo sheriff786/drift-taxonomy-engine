@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from api.routers import predictions, drift, models, health
+from api.routers import predictions, drift, models, health, explain
 from api.dependencies import load_resources, app_state
 
 
@@ -40,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(predictions.router, prefix="/api/v1", tags=["Predictions"])
     app.include_router(drift.router, prefix="/api/v1", tags=["Drift"])
     app.include_router(models.router, prefix="/api/v1", tags=["Models"])
+    app.include_router(explain.router, prefix="/api/v1", tags=["Explainability"])
 
     return app
 

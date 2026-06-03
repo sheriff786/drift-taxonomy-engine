@@ -1,0 +1,118 @@
+# =============================================================================
+# Drift Taxonomy Engine - Full Stack Docker Compose
+# =============================================================================
+# Services:
+#   - api:       FastAPI prediction + drift detection server (port 8000)
+#   - dashboard: Streamlit monitoring dashboard (port 8501)
+#   - mlflow:    MLflow tracking server (port 5000)
+#   - trainer:   One-shot training pipeline (runs on startup)
+# =============================================================================
+
+services:
+  # --- FastAPI Server ---
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: drift-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data:ro
+      - artifacts:/app/artifacts
+      - mlflow-data:/app/mlruns
+    environment:
+      - DATA_DIR=/app/data
+      - ARTIFACTS_DIR=/app/artifacts
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 2
+    depends_on:
+      trainer:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # --- Streamlit Dashboard ---
+  dashboard:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: drift-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - artifacts:/app/artifacts
+    environment:
+      - API_BASE_URL=http://api:8000/api/v1
+      - ARTIFACTS_DIR=/app/artifacts
+    command: python -m streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # --- MLflow Tracking Server ---
+  mlflow:
+    image: python:3.12-slim
+    container_name: drift-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    command: >
+      bash -c "pip install mlflow -q &&
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # --- Training Pipeline (one-shot) ---
+  trainer:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: drift-trainer
+    volumes:
+      - ../data:/app/data:ro
+      - artifacts:/app/artifacts
+      - mlflow-data:/app/mlruns
+    environment:
+      - DATA_DIR=/app/data
+      - ARTIFACTS_DIR=/app/artifacts
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    command: python -m pipelines.training_pipeline
+    depends_on:
+      mlflow:
+        condition: service_healthy
+
+  # --- Drift Monitor (scheduled check) ---
+  drift-monitor:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: drift-monitor
+    volumes:
+      - ../data:/app/data:ro
+      - artifacts:/app/artifacts
+    environment:
+      - ARTIFACTS_DIR=/app/artifacts
+    command: python scripts/simulate_drift_and_diagnose.py
+    depends_on:
+      trainer:
+        condition: service_completed_successfully
+    profiles:
+      - monitoring
+
+volumes:
+  artifacts:
+    driver: local
+  mlflow-data:
+    driver: local
