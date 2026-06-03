@@ -1,4 +1,4 @@
-.PHONY: install train drift serve dashboard test lint clean
+.PHONY: install train drift serve dashboard mlflow test lint clean
 
 ## Install dependencies
 install:
@@ -23,6 +23,10 @@ serve:
 ## Start Streamlit dashboard
 dashboard:
 	streamlit run dashboard/app.py
+
+## Start MLflow UI (backed by SQLite)
+mlflow:
+	mlflow ui --backend-store-uri sqlite:///artifacts/mlflow.db --host localhost --port 5000
 
 ## Run tests
 test:

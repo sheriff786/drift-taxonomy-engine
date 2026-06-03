@@ -279,7 +279,7 @@ Low             ALERT       ALERT       MONITOR     MONITOR     INVESTIGATE
 | **Explainability** | SHAP | Feature-level prediction explanations |
 | **API** | FastAPI + Uvicorn | REST serving (async, high-perf) |
 | **Dashboard** | Streamlit + Plotly | Real-time monitoring UI |
-| **Experiment Tracking** | MLflow | Metrics, params, artifacts, model registry |
+| **Experiment Tracking** | MLflow + SQLite | Metrics, params, artifacts, model registry (backend: `sqlite:///artifacts/mlflow.db`) |
 | **Drift Detection** | SciPy (KS), Custom Engine | Statistical testing |
 | **Data** | Pandas, NumPy, PyArrow | Processing + Parquet storage |
 | **Containerization** | Docker + Compose | Reproducible deployment |
@@ -347,6 +347,7 @@ drift-taxonomy-engine/
 ├── tests/
 │   └── unit/                     # 18+ unit tests
 ├── artifacts/                    # Generated at runtime
+│   ├── mlflow.db                 # SQLite backend for MLflow experiment tracking
 │   ├── models/                   # Serialized models + registry
 │   ├── reports/                  # Drift reports (JSON)
 │   └── references/               # Reference data (Parquet)
@@ -391,7 +392,7 @@ python -m pipelines.training_pipeline
 # 4. Start services
 uvicorn api.main:app --reload --port 8000          # API
 python -m streamlit run dashboard/app.py --server.port 8501  # Dashboard
-mlflow ui --port 5000                               # MLflow
+mlflow ui --backend-store-uri sqlite:///artifacts/mlflow.db --port 5000  # MLflow
 
 # 5. Run drift validation
 python scripts/simulate_drift_and_diagnose.py
@@ -541,7 +542,7 @@ Top Contributors:
 services:
   api:        # FastAPI on :8000
   dashboard:  # Streamlit on :8501
-  mlflow:     # MLflow on :5000
+  mlflow:     # MLflow on :5000 (backend: sqlite:///artifacts/mlflow.db)
 ```
 
 ```bash
