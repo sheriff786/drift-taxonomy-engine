@@ -1,0 +1,19 @@
+# Production environment overrides
+inherit: base.yaml
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  workers: 4
+  reload: false
+
+mlflow:
+  tracking_uri: ${DTE_MLFLOW_TRACKING_URI}
+  experiment_name: drift-taxonomy-prod
+
+monitoring:
+  check_interval_minutes: 15
+  prometheus_port: 9090
+
+logging:
+  level: INFO

@@ -1,0 +1,15 @@
+# Development environment overrides
+inherit: base.yaml
+
+api:
+  host: localhost
+  port: 8000
+  workers: 1
+  reload: true
+
+mlflow:
+  tracking_uri: sqlite:///artifacts/mlflow.db
+  experiment_name: drift-taxonomy-dev
+
+logging:
+  level: DEBUG
