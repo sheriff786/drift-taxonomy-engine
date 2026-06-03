@@ -1,0 +1,30 @@
+{
+  "drift_type": "none",
+  "severity": "none",
+  "action": "monitor",
+  "confidence": 1.0,
+  "covariate_score": 0.0,
+  "concept_score": 0.0,
+  "pipeline_score": 0.0,
+  "target_score": 0.0,
+  "drifted_features": [],
+  "pipeline_issues": [],
+  "reasoning": "No drift signals exceed classification threshold.",
+  "urgency_hours": 168,
+  "playbook": {
+    "drift_type": "none",
+    "severity": "none",
+    "recommended_action": "monitor",
+    "urgency_hours": 168,
+    "steps": [
+      {
+        "order": 1,
+        "action": "Continue",
+        "owner": "ML Platform",
+        "description": "No action. Continue standard monitoring."
+      }
+    ],
+    "generated_at": "2026-06-03T09:57:38.493515"
+  },
+  "diagnosed_at": "2026-06-03T09:57:38.493515"
+}

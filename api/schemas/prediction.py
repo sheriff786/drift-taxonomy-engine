@@ -38,14 +38,20 @@ class TransactionSample(BaseModel):
     Time_scaled: float = 0.0
 
 
+AVAILABLE_MODELS = ["random_forest", "xgboost", "lightgbm", "logistic_regression"]
+
+
 class PredictionRequest(BaseModel):
     """Batch prediction request."""
     samples: List[TransactionSample]
+    model_name: Optional[str] = None  # Options: random_forest, xgboost, lightgbm, logistic_regression
 
 
 class PredictionResponse(BaseModel):
     """Prediction response with fraud scores."""
     predictions: List[int]
     probabilities: List[float]
+    model_name: str
     model_version: str
     n_samples: int
+    available_models: List[str] = AVAILABLE_MODELS

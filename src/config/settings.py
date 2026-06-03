@@ -5,17 +5,20 @@ from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
+# Resolve project root at module level
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
 
 class Settings(BaseSettings):
     """Global application settings with env-var overrides."""
 
     # Project paths
-    project_root: Path = Path(__file__).resolve().parent.parent.parent
-    data_dir: Path = Field(default=None)
-    artifacts_dir: Path = Field(default=None)
-    models_dir: Path = Field(default=None)
-    reports_dir: Path = Field(default=None)
-    references_dir: Path = Field(default=None)
+    project_root: Path = _PROJECT_ROOT
+    data_dir: Path = _PROJECT_ROOT / "data"
+    artifacts_dir: Path = _PROJECT_ROOT / "artifacts"
+    models_dir: Path = _PROJECT_ROOT / "artifacts" / "models"
+    reports_dir: Path = _PROJECT_ROOT / "artifacts" / "reports"
+    references_dir: Path = _PROJECT_ROOT / "artifacts" / "references"
 
     # Model training
     test_size: float = 0.2
@@ -47,19 +50,6 @@ class Settings(BaseSettings):
     prometheus_port: int = 9090
 
     model_config = {"env_prefix": "DTE_", "env_file": ".env", "extra": "ignore"}
-
-    def model_post_init(self, __context) -> None:
-        """Set derived paths after init."""
-        if self.data_dir is None:
-            self.data_dir = self.project_root / "data"
-        if self.artifacts_dir is None:
-            self.artifacts_dir = self.project_root / "artifacts"
-        if self.models_dir is None:
-            self.models_dir = self.artifacts_dir / "models"
-        if self.reports_dir is None:
-            self.reports_dir = self.artifacts_dir / "reports"
-        if self.references_dir is None:
-            self.references_dir = self.artifacts_dir / "references"
 
 
 @lru_cache()
