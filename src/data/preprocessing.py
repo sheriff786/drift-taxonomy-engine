@@ -5,6 +5,8 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from typing import Tuple
 
+from src.config.constants import FEATURE_NAME_MAPPING, FEATURE_NAME_REVERSE
+
 
 class DataPreprocessor:
     """Handles scaling, encoding, and feature engineering for fraud detection."""
@@ -49,3 +51,15 @@ class DataPreprocessor:
         X = df.drop(columns=[target_col])
         y = df[target_col]
         return X, y
+
+    @staticmethod
+    def rename_to_domain(df: pd.DataFrame) -> pd.DataFrame:
+        """Rename PCA columns (V1-V28) to interpretive domain names for display."""
+        rename_map = {k: v for k, v in FEATURE_NAME_MAPPING.items() if k in df.columns}
+        return df.rename(columns=rename_map)
+
+    @staticmethod
+    def rename_to_original(df: pd.DataFrame) -> pd.DataFrame:
+        """Rename domain names back to PCA columns (V1-V28) for model inference."""
+        rename_map = {k: v for k, v in FEATURE_NAME_REVERSE.items() if k in df.columns}
+        return df.rename(columns=rename_map)

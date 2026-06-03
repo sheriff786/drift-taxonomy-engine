@@ -142,10 +142,18 @@ def run_training_pipeline(model_name: str = None) -> dict:
     importances = feature_engineer.compute_feature_importance_weights(
         best_model, list(X_train.columns)
     )
+
+    # Map importances to domain names for display
+    from src.config.constants import FEATURE_NAME_MAPPING
+    domain_importances = {}
+    for col, imp in importances.items():
+        domain_name = FEATURE_NAME_MAPPING.get(col, col)
+        domain_importances[domain_name] = imp
+
     feature_store = FeatureStore()
     feature_store.save_feature_schema(
-        feature_names=list(X_train.columns),
-        feature_importances=importances,
+        feature_names=[FEATURE_NAME_MAPPING.get(c, c) for c in X_train.columns],
+        feature_importances=domain_importances,
     )
     logger.info("Reference data and feature store saved.")
 

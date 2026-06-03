@@ -5,6 +5,8 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from src.config.constants import FEATURE_NAME_MAPPING, FEATURE_NAME_REVERSE
+
 
 @dataclass
 class ValidationResult:
@@ -20,6 +22,11 @@ class DataValidator:
     EXPECTED_COLUMNS = (
         ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount", "Class"]
     )
+    # Also accept domain-named columns
+    EXPECTED_DOMAIN_COLUMNS = (
+        ["transaction_time"] + [FEATURE_NAME_MAPPING[f"V{i}"] for i in range(1, 29)]
+        + ["transaction_amount", "Class"]
+    )
     EXPECTED_FEATURE_COUNT = 31  # 28 V-features + Time + Amount + Class
 
     def validate(self, df: pd.DataFrame) -> ValidationResult:
@@ -27,12 +34,23 @@ class DataValidator:
         errors = []
         warnings = []
 
-        # Schema check
-        missing_cols = set(self.EXPECTED_COLUMNS) - set(df.columns)
-        if missing_cols:
-            errors.append(f"Missing columns: {missing_cols}")
+        # Check if using domain names or original names
+        uses_domain = any(col in FEATURE_NAME_MAPPING.values() for col in df.columns)
+        expected = self.EXPECTED_DOMAIN_COLUMNS if uses_domain else self.EXPECTED_COLUMNS
 
-        extra_cols = set(df.columns) - set(self.EXPECTED_COLUMNS)
+        # Schema check
+        missing_cols = set(expected) - set(df.columns)
+        if missing_cols:
+            # If partial match, may be using the other naming convention
+            other_expected = self.EXPECTED_COLUMNS if uses_domain else self.EXPECTED_DOMAIN_COLUMNS
+            other_missing = set(other_expected) - set(df.columns)
+            if len(other_missing) < len(missing_cols):
+                missing_cols = other_missing
+                warnings.append("Detected mixed column naming. Consider using domain names consistently.")
+            if missing_cols:
+                errors.append(f"Missing columns: {missing_cols}")
+
+        extra_cols = set(df.columns) - set(expected)
         if extra_cols:
             warnings.append(f"Unexpected columns (will be ignored): {extra_cols}")
 

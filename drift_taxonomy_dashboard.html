@@ -1,0 +1,446 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans, sans-serif); }
+
+.dashboard { padding: 0 0 2rem; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1.25rem; }
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.topbar-sub { font-size: 12px; color: var(--color-text-secondary); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #639922; display: inline-block; }
+.status-dot.warn { background: #BA7517; }
+.status-dot.err { background: #A32D2D; }
+.topbar-actions { display: flex; gap: 8px; }
+.tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.tag-info { background: var(--color-background-info); color: var(--color-text-info); }
+.tag-warn { background: var(--color-background-warning); color: var(--color-text-warning); }
+.tag-ok { background: var(--color-background-success); color: var(--color-text-success); }
+.tag-err { background: var(--color-background-danger); color: var(--color-text-danger); }
+
+.metrics-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 0 1.25rem; margin-bottom: 1.25rem; }
+.metric-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.875rem 1rem; }
+.metric-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; letter-spacing: 0.02em; }
+.metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
+.metric-delta { font-size: 11px; margin-top: 4px; }
+.delta-up { color: var(--color-text-danger); }
+.delta-down { color: var(--color-text-success); }
+.delta-flat { color: var(--color-text-secondary); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 1.25rem; margin-bottom: 12px; }
+.grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; padding: 0 1.25rem; margin-bottom: 12px; }
+.grid-full { padding: 0 1.25rem; margin-bottom: 12px; }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.card-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+.card-sub { font-size: 11px; color: var(--color-text-secondary); }
+
+/* Drift heatmap */
+.heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.hm-cell { height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.hm-cell:hover { opacity: 0.75; }
+.hm-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 10px; color: var(--color-text-secondary); }
+.hm-ylab { font-size: 10px; color: var(--color-text-secondary); text-align: right; padding-right: 6px; display: flex; align-items: center; }
+.hm-row { display: contents; }
+
+/* Feature table */
+.feat-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.feat-table th { text-align: left; font-weight: 500; font-size: 11px; color: var(--color-text-secondary); padding: 0 8px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.feat-table td { padding: 8px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); vertical-align: middle; }
+.feat-table tr:last-child td { border-bottom: none; }
+.drift-bar { height: 6px; border-radius: 3px; }
+.drift-bar-bg { background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; width: 80px; }
+
+/* Timeline */
+.timeline-wrap { position: relative; height: 120px; }
+.tl-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--color-text-secondary); margin-top: 4px; }
+
+/* Taxonomy tree */
+.tree { list-style: none; padding-left: 16px; font-size: 12px; }
+.tree li { margin: 4px 0; }
+.tree-node { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: background 0.12s; }
+.tree-node:hover { background: var(--color-background-secondary); }
+.tree-toggle { width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--color-text-secondary); }
+.tree-label { flex: 1; color: var(--color-text-primary); }
+.tree > li > .tree-node { font-weight: 500; }
+
+/* MLflow runs */
+.run-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 12px; }
+.run-row:last-child { border-bottom: none; }
+.run-id { font-family: var(--font-mono); color: var(--color-text-secondary); font-size: 11px; min-width: 70px; }
+.run-name { color: var(--color-text-primary); flex: 1; }
+.run-stat { color: var(--color-text-secondary); min-width: 48px; text-align: right; }
+
+/* Score gauge */
+.gauge-ring { display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
+
+/* Alert pills */
+.alert-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.alert-item:last-child { border-bottom: none; }
+.alert-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.alert-msg { font-size: 12px; color: var(--color-text-primary); line-height: 1.5; }
+.alert-time { font-size: 11px; color: var(--color-text-secondary); }
+
+/* Tabs */
+.tabs { display: flex; gap: 2px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 3px; margin-bottom: 12px; }
+.tab-btn { flex: 1; font-size: 12px; border: none; background: transparent; padding: 6px; border-radius: 6px; cursor: pointer; color: var(--color-text-secondary); transition: all 0.15s; }
+.tab-btn.active { background: var(--color-background-primary); color: var(--color-text-primary); font-weight: 500; border: 0.5px solid var(--color-border-tertiary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+</style>
+
+<div class="dashboard">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="status-dot warn"></span>
+      <div>
+        <div class="topbar-title">Drift Taxonomy Dashboard</div>
+        <div class="topbar-sub">Credit Card Fraud Detection · Model v2.4.1 · Last scan 3 min ago</div>
+      </div>
+    </div>
+    <div class="topbar-actions" style="display:flex;gap:8px;align-items:center">
+      <span class="tag tag-warn">3 Drifts Detected</span>
+      <span class="tag tag-info">MLflow Active</span>
+      <button onclick="sendPrompt('Run a full drift diagnosis on all features now')" style="font-size:12px;padding:5px 12px">Run Diagnosis ↗</button>
+    </div>
+  </div>
+
+  <!-- Metric KPIs -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">PSI Score (Overall)</div>
+      <div class="metric-value" style="color:#A32D2D">0.24</div>
+      <div class="metric-delta delta-up">▲ +0.07 vs baseline</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">KL Divergence</div>
+      <div class="metric-value">0.11</div>
+      <div class="metric-delta delta-flat">— stable</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Features Drifted</div>
+      <div class="metric-value" style="color:#BA7517">7 / 32</div>
+      <div class="metric-delta delta-up">▲ 2 new today</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Model Accuracy</div>
+      <div class="metric-value">91.3%</div>
+      <div class="metric-delta delta-down">▼ −1.8% drift impact</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Data Quality Score</div>
+      <div class="metric-value" style="color:#639922">86</div>
+      <div class="metric-delta delta-flat">— no change</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Drift heatmap + Taxonomy tree -->
+  <div class="grid-2">
+    <!-- Heatmap -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Feature drift heatmap</div>
+          <div class="card-sub">PSI intensity across features × time windows</div>
+        </div>
+        <span class="tag tag-warn">7 flagged</span>
+      </div>
+      <div id="heatmap-container"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:10px;color:var(--color-text-secondary)">
+        <span>Low</span>
+        <div style="width:80px;height:8px;border-radius:4px;background:linear-gradient(to right,#EAF3DE,#639922,#BA7517,#A32D2D)"></div>
+        <span>Critical</span>
+      </div>
+    </div>
+
+    <!-- Taxonomy Tree -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Drift taxonomy</div>
+          <div class="card-sub">Hierarchical drift classification</div>
+        </div>
+        <button onclick="sendPrompt('Explain the drift taxonomy structure in detail')" style="font-size:11px;padding:4px 10px">Explain ↗</button>
+      </div>
+      <ul class="tree" id="tax-tree"></ul>
+    </div>
+  </div>
+
+  <!-- Row 2: Feature table + Alerts -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Feature drift analysis</div>
+          <div class="card-sub">PSI / KS test / Jensen-Shannon per feature</div>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'tab-all')">All features</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-drifted')">Drifted only</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-stable')">Stable</button>
+      </div>
+      <div class="tab-content active" id="tab-all"><div id="feature-table-all"></div></div>
+      <div class="tab-content" id="tab-drifted"><div id="feature-table-drifted"></div></div>
+      <div class="tab-content" id="tab-stable"><div id="feature-table-stable"></div></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <!-- Data Quality Score gauge -->
+      <div class="card" style="text-align:center">
+        <div class="card-title" style="margin-bottom:8px">Data quality</div>
+        <svg width="110" height="70" viewBox="0 0 110 70" style="display:block;margin:0 auto">
+          <path d="M10,60 A45,45 0 0,1 100,60" fill="none" stroke="var(--color-border-tertiary)" stroke-width="10" stroke-linecap="round"/>
+          <path d="M10,60 A45,45 0 0,1 100,60" fill="none" stroke="#639922" stroke-width="10" stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="19.8"/>
+          <text x="55" y="56" text-anchor="middle" font-size="18" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">86</text>
+          <text x="55" y="68" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)" font-family="var(--font-sans)">of 100</text>
+        </svg>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-top:4px">Completeness · Consistency · Validity</div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="card" style="flex:1">
+        <div class="card-header">
+          <div class="card-title">Recent alerts</div>
+          <span class="tag tag-err">3 critical</span>
+        </div>
+        <div id="alerts-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Timeline + MLflow runs -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Drift score timeline</div>
+          <div class="card-sub">PSI rolling 30 days — threshold 0.20</div>
+        </div>
+      </div>
+      <div style="position:relative;height:130px">
+        <canvas id="drift-timeline" role="img" aria-label="PSI drift score over 30 days line chart">PSI drift score over 30 days showing recent elevation above 0.20 threshold.</canvas>
+      </div>
+      <div class="tl-labels" id="tl-labels"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">MLflow experiment runs</div>
+          <div class="card-sub">drift_taxonomy_fraud · latest 5 runs</div>
+        </div>
+        <button onclick="sendPrompt('Compare the last 3 MLflow drift runs and show which had the highest PSI')" style="font-size:11px;padding:4px 10px">Compare ↗</button>
+      </div>
+      <div id="mlflow-runs"></div>
+    </div>
+  </div>
+
+  <!-- Row 4: Distribution comparison -->
+  <div class="grid-full">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Distribution comparison — train vs production</div>
+          <div class="card-sub">Feature: transaction_amount · KDE overlay</div>
+        </div>
+        <select onchange="sendPrompt('Show distribution comparison for feature: '+this.value)" style="font-size:12px;padding:4px 8px">
+          <option>transaction_amount</option>
+          <option>merchant_category</option>
+          <option>hour_of_day</option>
+          <option>card_velocity</option>
+          <option>zip_mismatch_score</option>
+        </select>
+      </div>
+      <div style="position:relative;height:140px">
+        <canvas id="dist-chart" role="img" aria-label="Overlapping density curves for train and production distributions">Train vs production distribution for transaction_amount showing divergence in tail.</canvas>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--color-text-secondary)">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#185FA5"></span>Train baseline</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#A32D2D"></span>Production</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#BA7517;display:inline-block"></span>Drift threshold</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const features = [
+  { name: 'transaction_amount', type: 'Covariate', psi: 0.24, ks: 0.19, js: 0.12, status: 'critical' },
+  { name: 'card_velocity',      type: 'Covariate', psi: 0.21, ks: 0.15, js: 0.09, status: 'critical' },
+  { name: 'zip_mismatch_score', type: 'Covariate', psi: 0.18, ks: 0.12, js: 0.07, status: 'warning' },
+  { name: 'merchant_category',  type: 'Concept',   psi: 0.16, ks: 0.10, js: 0.06, status: 'warning' },
+  { name: 'hour_of_day',        type: 'Temporal',  psi: 0.13, ks: 0.09, js: 0.05, status: 'warning' },
+  { name: 'device_fingerprint', type: 'Covariate', psi: 0.09, ks: 0.06, js: 0.03, status: 'stable' },
+  { name: 'auth_attempts',      type: 'Behavioral',psi: 0.07, ks: 0.05, js: 0.02, status: 'stable' },
+  { name: 'entry_mode',         type: 'Categorical',psi:0.05, ks: 0.04, js: 0.02, status: 'stable' },
+  { name: 'billing_country',    type: 'Categorical',psi:0.04, ks: 0.03, js: 0.01, status: 'stable' },
+];
+
+function statusColor(s) {
+  if (s==='critical') return '#A32D2D';
+  if (s==='warning')  return '#BA7517';
+  return '#639922';
+}
+function psiColor(v) {
+  if (v>=0.2) return '#A32D2D';
+  if (v>=0.1) return '#BA7517';
+  return '#639922';
+}
+
+function featureTable(rows) {
+  return `<table class="feat-table">
+    <thead><tr>
+      <th>Feature</th><th>Type</th><th>PSI</th><th>KS</th><th>JS</th><th>Status</th>
+    </tr></thead>
+    <tbody>${rows.map(f=>`
+    <tr style="cursor:pointer" onclick="sendPrompt('Diagnose drift for feature: ${f.name}')">
+      <td style="font-family:var(--font-mono);font-size:11px">${f.name}</td>
+      <td><span class="tag" style="background:var(--color-background-secondary);color:var(--color-text-secondary);font-size:10px">${f.type}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="drift-bar-bg"><div class="drift-bar" style="width:${Math.min(f.psi/0.3*100,100).toFixed(0)}%;background:${psiColor(f.psi)}"></div></div>
+          <span style="font-size:11px;color:${psiColor(f.psi)};font-weight:500">${f.psi.toFixed(2)}</span>
+        </div>
+      </td>
+      <td style="font-size:11px">${f.ks.toFixed(2)}</td>
+      <td style="font-size:11px">${f.js.toFixed(2)}</td>
+      <td><span class="tag" style="background:${f.status==='critical'?'var(--color-background-danger)':f.status==='warning'?'var(--color-background-warning)':'var(--color-background-success)'};color:${f.status==='critical'?'var(--color-text-danger)':f.status==='warning'?'var(--color-text-warning)':'var(--color-text-success)'};font-size:10px">${f.status}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+document.getElementById('feature-table-all').innerHTML = featureTable(features);
+document.getElementById('feature-table-drifted').innerHTML = featureTable(features.filter(f=>f.status!=='stable'));
+document.getElementById('feature-table-stable').innerHTML = featureTable(features.filter(f=>f.status==='stable'));
+
+function switchTab(btn, id) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// Heatmap
+const hmFeatures = ['txn_amount','card_vel','zip_mm','merch_cat','hour','device','auth_att'];
+const hmDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const hmData = [
+  [0.28,0.25,0.24,0.22,0.24,0.26,0.24],
+  [0.18,0.20,0.21,0.19,0.21,0.20,0.21],
+  [0.12,0.14,0.16,0.15,0.17,0.18,0.18],
+  [0.09,0.11,0.12,0.14,0.15,0.16,0.16],
+  [0.07,0.09,0.10,0.11,0.12,0.13,0.13],
+  [0.05,0.06,0.07,0.07,0.08,0.09,0.09],
+  [0.04,0.04,0.05,0.05,0.06,0.07,0.05],
+];
+function hmColor(v) {
+  if(v>=0.2) return {bg:'#F7C1C1',fg:'#791F1F'};
+  if(v>=0.12) return {bg:'#FAC775',fg:'#633806'};
+  if(v>=0.07) return {bg:'#C0DD97',fg:'#27500A'};
+  return {bg:'#EAF3DE',fg:'#3B6D11'};
+}
+let hc = `<div class="hm-header">${hmDays.map(d=>`<span>${d}</span>`).join('')}</div>`;
+hc += `<div style="display:grid;grid-template-columns:70px 1fr;gap:4px">`;
+hmData.forEach((row,ri)=>{
+  hc += `<div class="hm-ylab">${hmFeatures[ri]}</div><div class="heatmap-grid">`;
+  row.forEach(v=>{
+    const c=hmColor(v);
+    hc+=`<div class="hm-cell" style="background:${c.bg};color:${c.fg}" onclick="sendPrompt('Show drift details for ${hmFeatures[ri]}')">
+      ${v.toFixed(2)}</div>`;
+  });
+  hc+=`</div>`;
+});
+hc+=`</div>`;
+document.getElementById('heatmap-container').innerHTML=hc;
+
+// Taxonomy tree
+const taxonomy = [
+  { label:'Covariate drift', tag:'warn', children:[
+    {label:'Numerical shift',tag:'err',children:[{label:'transaction_amount'},{label:'card_velocity'}]},
+    {label:'Variance change',tag:'warn',children:[{label:'zip_mismatch_score'}]},
+  ]},
+  {label:'Concept drift',tag:'warn',children:[
+    {label:'Label distribution',tag:'warn',children:[{label:'merchant_category'}]},
+    {label:'Decision boundary',tag:'ok',children:[]},
+  ]},
+  {label:'Temporal drift',tag:'ok',children:[
+    {label:'Seasonality shift',tag:'warn',children:[{label:'hour_of_day'}]},
+  ]},
+  {label:'Data quality',tag:'ok',children:[
+    {label:'Missing values',tag:'ok',children:[]},
+    {label:'Outlier injection',tag:'ok',children:[]},
+  ]},
+];
+function renderTree(nodes,depth=0){
+  return `<ul class="tree" style="padding-left:${depth?14:0}px">${nodes.map(n=>{
+    const tagHtml = n.tag ? `<span class="tag tag-${n.tag==='err'?'err':n.tag==='warn'?'warn':'ok'}" style="font-size:10px;padding:1px 6px">${n.tag==='err'?'Critical':n.tag==='warn'?'Warn':'OK'}</span>`:''
+    const kids = n.children&&n.children.length?renderTree(n.children,depth+1):'';
+    return `<li><div class="tree-node" onclick="${n.children?``:` sendPrompt('Tell me about drift type: ${n.label}')`}">
+      ${n.children?`<span class="tree-toggle">▸</span>`:`<span class="tree-toggle">·</span>`}
+      <span class="tree-label">${n.label}</span>${tagHtml}
+    </div>${kids}</li>`;
+  }).join('')}</ul>`;
+}
+document.getElementById('tax-tree').outerHTML = `<div id="tax-tree">${renderTree(taxonomy)}</div>`;
+
+// Alerts
+const alerts = [
+  {color:'#A32D2D',msg:'PSI exceeded 0.20 threshold on transaction_amount (PSI=0.24)',time:'10:42 AM'},
+  {color:'#A32D2D',msg:'Card velocity distribution divergence detected — KS=0.15',time:'09:18 AM'},
+  {color:'#A32D2D',msg:'Merchant category concept drift — label imbalance +12%',time:'Yesterday'},
+  {color:'#BA7517',msg:'Zip mismatch score drift approaching threshold (PSI=0.18)',time:'Yesterday'},
+  {color:'#639922',msg:'MLflow run drift-v2.4.1 completed — no new critical drifts',time:'2 days ago'},
+];
+document.getElementById('alerts-list').innerHTML = alerts.map(a=>`
+  <div class="alert-item" onclick="sendPrompt('Tell me more about this alert: ${a.msg}')">
+    <div class="alert-dot" style="background:${a.color}"></div>
+    <div><div class="alert-msg">${a.msg}</div><div class="alert-time">${a.time}</div></div>
+  </div>`).join('');
+
+// MLflow runs
+const runs = [
+  {id:'a3f1e9',name:'drift-v2.4.1',psi:'0.24',status:'critical',time:'Today'},
+  {id:'c82b0d',name:'drift-v2.4.0',psi:'0.17',status:'warn',time:'3 days ago'},
+  {id:'f1a445',name:'drift-v2.3.9',psi:'0.11',status:'ok',time:'1 week ago'},
+  {id:'9e2c61',name:'drift-v2.3.8',psi:'0.09',status:'ok',time:'2 weeks ago'},
+  {id:'4b7d12',name:'drift-v2.3.7',psi:'0.08',status:'ok',time:'3 weeks ago'},
+];
+document.getElementById('mlflow-runs').innerHTML = runs.map(r=>{
+  const c = r.status==='critical'?'#A32D2D':r.status==='warn'?'#BA7517':'#639922';
+  return `<div class="run-row" style="cursor:pointer" onclick="sendPrompt('Show MLflow run details for ${r.name}')">
+    <div class="run-id">${r.id}</div>
+    <div class="run-name">${r.name}</div>
+    <div class="run-stat" style="color:${c};font-weight:500">${r.psi}</div>
+    <span class="tag" style="background:${r.status==='critical'?'var(--color-background-danger)':r.status==='warn'?'var(--color-background-warning)':'var(--color-background-success)'};color:${r.status==='critical'?'var(--color-text-danger)':r.status==='warn'?'var(--color-text-warning)':'var(--color-text-success)'};font-size:10px">${r.status==='critical'?'Critical':r.status==='warn'?'Warning':'OK'}</span>
+    <div class="alert-time">${r.time}</div>
+  </div>`;
+}).join('');
+
+// Timeline chart
+const days30 = Array.from({length:30},(_,i)=>{
+  const d=new Date(); d.setDate(d.getDate()-29+i);
+  return d.getDate()+'/'+(d.getMonth()+1);
+});
+const psiVals = [0.08,0.09,0.08,0.10,0.09,0.10,0.11,0.10,0.12,0.11,0.12,0.13,0.12,0.14,0.13,0.15,0.14,0.16,0.15,0.17,0.18,0.19,0.20,0.21,0.22,0.23,0.22,0.24,0.24,0.24];
+const showLabels = days30.filter((_,i)=>i%5===0);
+document.getElementById('tl-labels').innerHTML = showLabels.map(d=>`<span>${d}</span>`).join('');
+new Chart(document.getElementById('drift-timeline'),{
+  type:'line',
+  data:{labels:days30,datasets:[
+    {label:'PSI',data:psiVals,borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,0.08)',borderWidth:1.5,pointRadius:0,tension:0.35,fill:true},
+    {label:'Threshold',data:Array(30).fill(0.20),borderColor:'#BA7517',borderWidth:1,borderDash:[4,4],pointRadius:0,borderDashOffset:0,borderCapStyle:'round'},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)}}},scales:{x:{display:false},y:{min:0.05,max:0.30,ticks:{font:{size:10},callback:v=>v.toFixed(2)},grid:{color:'rgba(128,128,128,0.1)'}}}}
+});
+
+// Distribution chart
+const bins = ['<50','50-100','100-200','200-500','500-1k','1k-2k','>2k'];
+new Chart(document.getElementById('dist-chart'),{
+  type:'bar',
+  data:{labels:bins,datasets:[
+    {label:'Train',data:[12,28,34,18,5,2,1],backgroundColor:'rgba(24,95,165,0.5)',borderColor:'#185FA5',borderWidth:1},
+    {label:'Production',data:[9,22,31,22,9,5,2],backgroundColor:'rgba(163,45,45,0.45)',borderColor:'#A32D2D',borderWidth:1},
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}}}}
+});
+</script>

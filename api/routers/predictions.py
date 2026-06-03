@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 import pandas as pd
 
 from api.schemas.prediction import PredictionRequest, PredictionResponse, AVAILABLE_MODELS
+from src.config.constants import FEATURE_NAME_MAPPING, FEATURE_NAME_REVERSE
 from src.models.predictor import ModelPredictor
 from src.models.registry import ModelRegistry
 
@@ -18,6 +19,17 @@ async def list_available_models():
     return {
         "available_models": registered,
         "default": "random_forest",
+    }
+
+
+@router.get("/features/mapping")
+async def get_feature_mapping():
+    """Get the mapping between original PCA columns and domain feature names."""
+    return {
+        "mapping": FEATURE_NAME_MAPPING,
+        "reverse": FEATURE_NAME_REVERSE,
+        "feature_names": list(FEATURE_NAME_MAPPING.values()),
+        "original_names": list(FEATURE_NAME_MAPPING.keys()),
     }
 
 
@@ -47,8 +59,8 @@ async def predict(request: PredictionRequest):
 
         predictor = ModelPredictor(model_name=model_name)
 
-        # Convert request to DataFrame
-        df = pd.DataFrame([sample.model_dump() for sample in request.samples])
+        # Convert request to DataFrame using model input format (V1-V28)
+        df = pd.DataFrame([sample.to_model_input() for sample in request.samples])
 
         result = predictor.predict_with_metadata(df)
 
